@@ -1,0 +1,6 @@
+{
+  "name": "Quantum Periodic Map",
+  "description": "First-principles 118-element Quantum Periodic Map organized by atomic orbital filling (s, f, d, p), quantum addresses, orbital staircases, and 3D chemical phase-space.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
