@@ -1,6 +1,7 @@
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ELEMENTS_BY_Z } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, ChemicalFamily, ColorOverlayMode } from '../types/element';
 import { BLOCK_META, FAMILY_META, getElementCellTheme, MADELUNG_STEPS } from '../utils/quantum';
 
@@ -20,6 +21,7 @@ export function OrbitalStaircaseView({
   isDark,
 }: OrbitalStaircaseViewProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const { isAr, getElementName } = useLanguage();
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -55,19 +57,19 @@ export function OrbitalStaircaseView({
             {isPlaying ? (
               <>
                 <Pause className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Pause</span>
+                <span>{isAr ? 'إيقاف مؤقت' : 'Pause'}</span>
               </>
             ) : (
               <>
                 <Play className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Step Aufbau</span>
+                <span>{isAr ? 'تدرّج أوفباو' : 'Step Aufbau'}</span>
               </>
             )}
           </button>
 
           <button
             type="button"
-            aria-label="Previous atomic number"
+            aria-label={isAr ? 'العدد الذري السابق' : 'Previous atomic number'}
             onClick={() => {
               setIsPlaying(false);
               const prev = ELEMENTS_BY_Z.get(Math.max(1, selectedElement.z - 1));
@@ -80,7 +82,7 @@ export function OrbitalStaircaseView({
 
           <button
             type="button"
-            aria-label="Next atomic number"
+            aria-label={isAr ? 'العدد الذري التالي' : 'Next atomic number'}
             onClick={() => {
               setIsPlaying(false);
               const next = ELEMENTS_BY_Z.get(Math.min(118, selectedElement.z + 1));
@@ -93,7 +95,7 @@ export function OrbitalStaircaseView({
 
           <button
             type="button"
-            aria-label="Reset to Hydrogen Z=1"
+            aria-label={isAr ? 'إعادة الضبط إلى الهيدروجين Z=1' : 'Reset to Hydrogen Z=1'}
             onClick={() => {
               setIsPlaying(false);
               const h = ELEMENTS_BY_Z.get(1);
@@ -131,12 +133,12 @@ export function OrbitalStaircaseView({
         </div>
 
         <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-          Vertical axis: Subshell Energy (n + l Madelung order)
+          {isAr ? 'المحور الرأسي: طاقة تحت-الغلاف (ترتيب n + l)' : 'Vertical axis: Subshell Energy (n + l Madelung order)'}
         </div>
       </div>
 
       {/* Ascending Staircase Canvas */}
-      <div className="overflow-x-auto qpm-scroll pb-2">
+      <div dir="ltr" className="overflow-x-auto qpm-scroll pb-2">
         <div className="min-w-[920px] relative pl-10 pr-4 py-2 space-y-1.5">
           {/* Vertical Energy Axis Indicator */}
           <div
@@ -144,7 +146,7 @@ export function OrbitalStaircaseView({
             className="absolute left-3 top-4 bottom-4 w-px bg-slate-300 dark:bg-slate-700 flex flex-col justify-between items-center"
           >
             <span className="-translate-y-2 text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#0D111A] px-1">
-              High E
+              {isAr ? 'طاقة عالية' : 'High E'}
             </span>
             <span className="translate-y-2 text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#0D111A] px-1">
               1s
@@ -219,7 +221,7 @@ export function OrbitalStaircaseView({
                               ? 'opacity-100'
                               : 'opacity-55 hover:opacity-95'
                         }`}
-                        title={`${el.name} (${el.symbol}) · ${el.quantumAddress}`}
+                        title={`${getElementName(el)} (${el.symbol}) · ${el.quantumAddress}`}
                       >
                         <div className="flex items-center justify-between leading-none">
                           <span className="font-mono text-[9px] text-slate-600 dark:text-slate-300">

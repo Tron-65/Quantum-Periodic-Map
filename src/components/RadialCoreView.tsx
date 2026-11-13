@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ELEMENTS } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, ChemicalFamily, ColorOverlayMode, OrbitalBlock } from '../types/element';
 import { BLOCK_META, getElementHexColor } from '../utils/quantum';
 
@@ -78,6 +79,7 @@ export function RadialCoreView({
   isDark,
 }: RadialCoreViewProps) {
   const [hoveredEl, setHoveredEl] = useState<ChemicalElement | null>(null);
+  const { isAr } = useLanguage();
 
   const nodes = useMemo(() => {
     return ELEMENTS.map((el) => {
@@ -89,10 +91,10 @@ export function RadialCoreView({
   }, []);
 
   const sectorHeaders: Array<{ block: OrbitalBlock; label: string; angle: number; radius: number }> = [
-    { block: 'p', label: 'p-BLOCK (p¹–p⁶)', angle: 0, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
-    { block: 'd', label: 'd-BLOCK (d¹–d¹⁰)', angle: 97, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
-    { block: 'f', label: 'f-BLOCK (f¹–f¹⁴)', angle: 212, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
-    { block: 's', label: 's-BLOCK (s¹–s²)', angle: 297, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
+    { block: 'p', label: isAr ? 'فئة p (p¹–p⁶)' : 'p-BLOCK (p¹–p⁶)', angle: 0, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
+    { block: 'd', label: isAr ? 'فئة d (d¹–d¹⁰)' : 'd-BLOCK (d¹–d¹⁰)', angle: 97, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
+    { block: 'f', label: isAr ? 'فئة f (f¹–f¹⁴)' : 'f-BLOCK (f¹–f¹⁴)', angle: 212, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
+    { block: 's', label: isAr ? 'فئة s (s¹–s²)' : 's-BLOCK (s¹–s²)', angle: 297, radius: INNER_RADIUS + 7 * RING_STEP + 38 },
   ];
 
   const activeEl = hoveredEl ?? selectedElement;
@@ -221,7 +223,7 @@ export function RadialCoreView({
             className="font-mono text-[10px] font-semibold tracking-widest"
             fill={isDark ? '#94A3B8' : '#64748B'}
           >
-            SHELL CORE
+            {isAr ? 'نواة الأغلفة' : 'SHELL CORE'}
           </text>
           <text
             x={CENTER}
@@ -302,7 +304,15 @@ export function RadialCoreView({
       </div>
 
       <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xl">
-        Concentric rings trace principal energy shells (<span className="font-mono">n = 1..7</span>) from the filled core outward, while radial spokes align elements with identical valence subshell populations.
+        {isAr ? (
+          <>
+            تتبع الحلقات المتحدة المركز أغلفة الطاقة الرئيسية (<span className="font-mono">n = 1..7</span>) من المركز نحو الخارج، بينما تصطف المحاور الشعاعية للعناصر ذات عدد إلكترونات التكافؤ نفسه.
+          </>
+        ) : (
+          <>
+            Concentric rings trace principal energy shells (<span className="font-mono">n = 1..7</span>) from the filled core outward, while radial spokes align elements with identical valence subshell populations.
+          </>
+        )}
       </p>
     </div>
   );

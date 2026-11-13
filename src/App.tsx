@@ -9,9 +9,11 @@ import { PhaseSpace3DView } from './components/PhaseSpace3DView';
 import { PropertyLegend } from './components/PropertyLegend';
 import { QuantumTrendPlotter } from './components/QuantumTrendPlotter';
 import { RadialCoreView } from './components/RadialCoreView';
+import { SolarSystemView } from './components/SolarSystemView';
 import { TopBar } from './components/TopBar';
 import { WorkspaceToolbar } from './components/WorkspaceToolbar';
 import { ELEMENTS_BY_Z } from './data/elements';
+import { useLanguage } from './i18n/LanguageContext';
 import { ChemicalElement, ChemicalFamily, ColorOverlayMode, ViewMode } from './types/element';
 
 const DEFAULT_ELEMENT = ELEMENTS_BY_Z.get(6)!; // Carbon (Z = 6, P2 – p2 – V4)
@@ -27,6 +29,7 @@ export default function App() {
   const [familyFilter, setFamilyFilter] = useState<ChemicalFamily | 'all'>('all');
   const [isDark, setIsDark] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { isAr } = useLanguage();
 
   const handleElementSelect = (el: ChemicalElement) => {
     if (compareMode && activeCompareSlot === 'B') {
@@ -82,21 +85,31 @@ export default function App() {
         <section className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1 max-w-3xl">
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 [text-wrap:balance]">
-              Organized by atomic orbital filling, not arbitrary columns
+              {isAr
+                ? 'منظّم وفق امتلاء المدارات الذرية، لا الأعمدة التقليدية'
+                : 'Organized by atomic orbital filling, not arbitrary columns'}
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              All 118 elements arranged across continuous <span className="font-mono">s → f → d → p</span> subshells, principal energy levels (<span className="font-mono">n = 1..7</span>), and chemical property fields.
+              {isAr ? (
+                <>
+                  جميع العناصر الـ 118 مرتبة عبر تحت-الأغلفة المتصلة <span className="font-mono">s → f → d → p</span> ومستويات الطاقة الرئيسية (<span className="font-mono">n = 1..7</span>) وحقول الخصائص الكيميائية.
+                </>
+              ) : (
+                <>
+                  All 118 elements arranged across continuous <span className="font-mono">s → f → d → p</span> subshells, principal energy levels (<span className="font-mono">n = 1..7</span>), and chemical property fields.
+                </>
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-            <span>Jump to:</span>
+            <span>{isAr ? 'انتقل إلى:' : 'Jump to:'}</span>
             {[
-              { z: 6, label: 'C (P2–p2)' },
-              { z: 26, label: 'Fe (P4–d6)' },
-              { z: 8, label: 'O (P2–p4)' },
-              { z: 64, label: 'Gd (P6–f7)' },
-              { z: 79, label: 'Au (P6–d10)' },
+              { z: 6, label: 'C (P2–p2)', labelAr: 'كربون (P2–p2)' },
+              { z: 26, label: 'Fe (P4–d6)', labelAr: 'حديد (P4–d6)' },
+              { z: 8, label: 'O (P2–p4)', labelAr: 'أكسجين (P2–p4)' },
+              { z: 64, label: 'Gd (P6–f7)', labelAr: 'غادولينيوم (P6–f7)' },
+              { z: 79, label: 'Au (P6–d10)', labelAr: 'ذهب (P6–d10)' },
             ].map((item) => {
               const el = ELEMENTS_BY_Z.get(item.z);
               if (!el) return null;
@@ -112,7 +125,7 @@ export default function App() {
                       : 'hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  {item.label}
+                  {isAr ? item.labelAr : item.label}
                 </button>
               );
             })}
@@ -137,18 +150,20 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0D111A] text-xs">
             <div className="flex flex-wrap items-center gap-2 font-mono">
               <span className="font-sans font-semibold text-slate-800 dark:text-slate-200">
-                Comparison Mode:
+                {isAr ? 'وضع المقارنة:' : 'Comparison Mode:'}
               </span>
               <span className="text-blue-600 dark:text-blue-400">
                 A = {selectedElement.symbol} ({selectedElement.z})
               </span>
-              <span className="text-slate-400">vs</span>
+              <span className="text-slate-400">{isAr ? 'مقابل' : 'vs'}</span>
               <span className="text-teal-600 dark:text-teal-400">
                 B = {compareElement.symbol} ({compareElement.z})
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500 dark:text-slate-400">Map clicks update:</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                {isAr ? 'النقر على الخريطة يحدّث:' : 'Map clicks update:'}
+              </span>
               <button
                 type="button"
                 onClick={() => setActiveCompareSlot('A')}
@@ -158,7 +173,7 @@ export default function App() {
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                 }`}
               >
-                Target A
+                {isAr ? 'العنصر A' : 'Target A'}
               </button>
               <button
                 type="button"
@@ -169,13 +184,13 @@ export default function App() {
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                 }`}
               >
-                Target B
+                {isAr ? 'العنصر B' : 'Target B'}
               </button>
               <a
                 href="#atomic-shell-studio"
                 className="ml-1 font-semibold text-slate-900 dark:text-slate-100 underline underline-offset-4"
               >
-                View Matrix ↓
+                {isAr ? 'عرض المصفوفة ↓' : 'View Matrix ↓'}
               </a>
             </div>
           </div>
@@ -217,6 +232,17 @@ export default function App() {
             {viewMode === 'radial' && (
               <RadialCoreView
                 selectedElement={compareMode && activeCompareSlot === 'B' ? compareElement : selectedElement}
+                onSelectElement={handleElementSelect}
+                overlay={overlay}
+                familyFilter={familyFilter}
+                isDark={isDark}
+              />
+            )}
+
+            {viewMode === 'solar' && (
+              <SolarSystemView
+                mode="periodic"
+                element={compareMode && activeCompareSlot === 'B' ? compareElement : selectedElement}
                 onSelectElement={handleElementSelect}
                 overlay={overlay}
                 familyFilter={familyFilter}
@@ -269,9 +295,15 @@ export default function App() {
 
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0E17] mt-10">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <span>Quantum Periodic Map · 118-Element Orbital Architecture</span>
+          <span>
+            {isAr
+              ? 'الخريطة الدورية الكمومية · البنية المدارية لـ 118 عنصراً'
+              : 'Quantum Periodic Map · 118-Element Orbital Architecture'}
+          </span>
           <span className="font-mono">
-            Sequence: Electron Configuration → Periodicity → Chemical Properties
+            {isAr
+              ? 'التسلسل: التوزيع الإلكتروني ← الدورية ← الخصائص الكيميائية'
+              : 'Sequence: Electron Configuration → Periodicity → Chemical Properties'}
           </span>
         </div>
       </footer>

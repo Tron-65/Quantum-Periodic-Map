@@ -1,10 +1,11 @@
 import { ArrowLeftRight, CircleDot, GitCompare, Orbit } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ELEMENTS, ELEMENTS_BY_Z } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement } from '../types/element';
 import { BLOCK_META } from '../utils/quantum';
 import { BohrShellDiagram, getShellSummaries } from './BohrShellDiagram';
-import { SolarSystemView } from './SolarSystemView';
+import { SolarEngine, SolarSystemView } from './SolarSystemView';
 
 interface AtomicComparisonStudioProps {
   selectedElement: ChemicalElement;
@@ -47,28 +48,32 @@ export function AtomicComparisonStudio({
   onSwapElements,
   isDark,
 }: AtomicComparisonStudioProps) {
+  const { isAr, getElementName, getElementBehavior } = useLanguage();
   const [syncAnimate, setSyncAnimate] = useState(true);
   const [focusedShellN, setFocusedShellN] = useState<number | null>(null);
+  const [focusedShellB, setFocusedShellB] = useState<number | null>(null);
   const [atomRepresentation, setAtomRepresentation] = useState<'solar' | 'bohr'>('solar');
+  const [solarEngine, setSolarEngine] = useState<SolarEngine>('3d');
 
   useEffect(() => {
     setFocusedShellN((prev) => (prev !== null && prev > selectedElement.period ? null : prev));
   }, [selectedElement.period, selectedElement.z]);
+
+  useEffect(() => {
+    setFocusedShellB((prev) => (prev !== null && prev > compareElement.period ? null : prev));
+  }, [compareElement.period, compareElement.z]);
 
   const shellsA = getShellSummaries(selectedElement);
   const shellsB = getShellSummaries(compareElement);
 
   const selectRepresentation = (mode: 'solar' | 'bohr') => {
     setAtomRepresentation(mode);
-    if (compareMode) {
-      onToggleCompareMode();
-    }
   };
 
   return (
     <section
       id="atomic-shell-studio"
-      aria-label="Atomic Orbital Representation and Element Comparison"
+      aria-label={isAr ? 'التمثيل المداري الذري ومقارنة العناصر' : 'Atomic Orbital Representation and Element Comparison'}
       className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-800 rounded-lg p-5 sm:p-6 space-y-5"
     >
       {/* Studio Header */}
@@ -76,54 +81,74 @@ export function AtomicComparisonStudio({
         <div className="space-y-0.5">
           <h2 className="font-display text-lg font-bold text-slate-900 dark:text-slate-50">
             {compareMode
-              ? 'Bohr Shell & Quantum Comparison Mode'
+              ? atomRepresentation === 'solar'
+                ? isAr
+                  ? 'مقارنة النموذج الشمسي والكمومي للذرة'
+                  : 'Solar-System & Quantum Model Comparison'
+                : isAr
+                  ? 'وضع مقارنة أغلفة بور والتركيب الكمومي'
+                  : 'Bohr Shell & Quantum Comparison Mode'
               : atomRepresentation === 'solar'
-                ? '3D Solar-System Atomic Orrery'
-                : 'Dynamic Bohr Shell Architecture'}
+                ? isAr
+                  ? 'النموذج الذري الشمسي ثلاثي الأبعاد'
+                  : '3D Solar-System Atomic Orrery'
+                : isAr
+                  ? 'بنية أغلفة بور الديناميكية'
+                  : 'Dynamic Bohr Shell Architecture'}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {compareMode
-              ? 'Compare shell occupancy, quantum addresses, and periodic deltas side by side. Click any element on the map to update the armed slot.'
+              ? atomRepresentation === 'solar'
+                ? isAr
+                  ? 'قارن المدارات التفاعلية ثلاثية الأبعاد وسحب الاحتمال الإلكترونية والعناوين الكمومية والفروق الدورية جنباً إلى جنب.'
+                  : 'Compare 3D interactive orbits, electron probability clouds, quantum addresses, and periodic deltas side by side.'
+                : isAr
+                  ? 'قارن إشغال الأغلفة والعناوين الكمومية والفروق الدورية جنباً إلى جنب. انقر على أي عنصر في الخريطة لتحديث الخانة المحددة.'
+                  : 'Compare shell occupancy, quantum addresses, and periodic deltas side by side. Click any element on the map to update the armed slot.'
               : atomRepresentation === 'solar'
-                ? `Keplerian 3D orbital model of ${selectedElement.name} with a ${selectedElement.z}-proton nucleon core and ${selectedElement.period} principal electron shells colored by s, f, d, p subshell.`
-                : `Principal shell occupation for ${selectedElement.name} (n = 1..${selectedElement.period}), with electrons color-coded by s, f, d, p subshell.`}
+                ? isAr
+                  ? `نموذج كيبلر المداري ثلاثي الأبعاد لعنصر ${getElementName(selectedElement)} بنواة تضم ${selectedElement.z} بروتوناً و${selectedElement.period} أغلفة إلكترونية رئيسية ملونة حسب المدارات الفرعية s وf وd وp.`
+                  : `Keplerian 3D orbital model of ${selectedElement.name} with a ${selectedElement.z}-proton nucleon core and ${selectedElement.period} principal electron shells colored by s, f, d, p subshell.`
+                : isAr
+                  ? `إشغال الأغلفة الرئيسية لعنصر ${getElementName(selectedElement)} (n = 1..${selectedElement.period})، مع تلوين الإلكترونات حسب المدارات الفرعية s وf وd وp.`
+                  : `Principal shell occupation for ${selectedElement.name} (n = 1..${selectedElement.period}), with electrons color-coded by s, f, d, p subshell.`}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* 3D Solar System vs 2D Bohr Switcher */}
+          {/* Solar System vs 2D Bohr Switcher (works in both single & comparison mode) */}
           <div
             role="tablist"
-            aria-label="Atomic model representation"
+            aria-label={isAr ? 'نموذج تمثيل الذرة' : 'Atomic model representation'}
             className="inline-flex items-center rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-0.5"
           >
             <button
               type="button"
               role="tab"
-              aria-selected={!compareMode && atomRepresentation === 'solar'}
+              aria-selected={atomRepresentation === 'solar'}
               onClick={() => selectRepresentation('solar')}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-sm transition-colors cursor-pointer whitespace-nowrap ${
-                !compareMode && atomRepresentation === 'solar'
+                atomRepresentation === 'solar'
                   ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Orbit className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>3D Solar System</span>
+              <span>{isAr ? 'النظام الشمسي' : 'Solar System'}</span>
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={!compareMode && atomRepresentation === 'bohr'}
+              aria-selected={atomRepresentation === 'bohr'}
               onClick={() => selectRepresentation('bohr')}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-sm transition-colors cursor-pointer whitespace-nowrap ${
-                !compareMode && atomRepresentation === 'bohr'
+                atomRepresentation === 'bohr'
                   ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <CircleDot className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>2D Bohr Rings</span>
+              <span>{isAr ? 'حلقات بور ثنائية الأبعاد' : '2D Bohr Rings'}</span>
             </button>
           </div>
 
@@ -138,7 +163,15 @@ export function AtomicComparisonStudio({
             }`}
           >
             <GitCompare className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>{compareMode ? 'Exit Compare Mode' : 'Compare Elements'}</span>
+            <span>
+              {compareMode
+                ? isAr
+                  ? 'إغلاق وضع المقارنة'
+                  : 'Exit Compare Mode'
+                : isAr
+                  ? 'مقارنة العناصر'
+                  : 'Compare Elements'}
+            </span>
           </button>
         </div>
       </div>
@@ -152,6 +185,8 @@ export function AtomicComparisonStudio({
                 element={selectedElement}
                 focusedShellN={focusedShellN}
                 onFocusShell={setFocusedShellN}
+                engineProp={solarEngine}
+                onChangeEngine={setSolarEngine}
               />
             ) : (
               <BohrShellDiagram
@@ -166,12 +201,16 @@ export function AtomicComparisonStudio({
           </div>
 
           <div className={atomRepresentation === 'solar' ? 'lg:col-span-5 space-y-4' : 'lg:col-span-7 space-y-4'}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                Principal Energy Level Occupation (n = 1..7)
+                {isAr
+                  ? 'إشغال مستويات الطاقة الرئيسية (n = 1..7)'
+                  : 'Principal Energy Level Occupation (n = 1..7)'}
               </h3>
               <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
-                Active Period P{selectedElement.period} · {selectedElement.z} Total e⁻
+                {isAr
+                  ? `الدورة P${selectedElement.period} · ${selectedElement.z} إلكتروناً`
+                  : `Active Period P${selectedElement.period} · ${selectedElement.z} Total e⁻`}
               </span>
             </div>
 
@@ -190,7 +229,7 @@ export function AtomicComparisonStudio({
                     type="button"
                     disabled={count === 0}
                     onClick={() => setFocusedShellN(isFocused ? null : n)}
-                    className={`w-full text-left px-3 py-2 rounded border text-xs transition-colors ${
+                    className={`w-full text-start px-3 py-2 rounded border text-xs transition-colors ${
                       count > 0 ? 'cursor-pointer' : 'cursor-default'
                     } ${
                       isFocused
@@ -203,18 +242,26 @@ export function AtomicComparisonStudio({
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100 w-10">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 w-10">
                           n = {n}
                         </span>
                         <span className="text-slate-500 dark:text-slate-400">
                           {isValenceLevel
-                            ? 'Outer Valence Shell'
+                            ? isAr
+                              ? 'غلاف التكافؤ الخارجي'
+                              : 'Outer Valence Shell'
                             : shell?.containsDifferentiating
-                              ? `Inner Active (${selectedElement.differentiatingOrbital})`
+                              ? isAr
+                                ? `داخلي نشط (${selectedElement.differentiatingOrbital})`
+                                : `Inner Active (${selectedElement.differentiatingOrbital})`
                               : count > 0
-                                ? 'Inner Core Shell'
-                                : 'Unoccupied'}
+                                ? isAr
+                                  ? 'غلاف نواة داخلي'
+                                  : 'Inner Core Shell'
+                                : isAr
+                                  ? 'غير مشغول'
+                                  : 'Unoccupied'}
                         </span>
                       </div>
                       <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
@@ -222,7 +269,7 @@ export function AtomicComparisonStudio({
                       </span>
                     </div>
 
-                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
+                    <div dir="ltr" className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
                       {shell?.electronsByBlock.map((sub) => (
                         <div
                           key={sub.subshell}
@@ -242,8 +289,18 @@ export function AtomicComparisonStudio({
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {selectedElement.block === 'd' || selectedElement.block === 'f' ? (
+                isAr ? (
+                  <>
+                    لاحظ كيف يضيف عنصر <span className="font-semibold text-slate-900 dark:text-slate-100">{getElementName(selectedElement)}</span> إلكترونه المميّز <span className="font-mono">{selectedElement.differentiatingConfig}</span> إلى غلاف داخلي بينما يعمل <span className="font-mono">n = {selectedElement.period}</span> كحد خارجي—مما يفسّر تقارب أنصاف الأقطار الذرية عبر السلاسل الانتقالية والنادرة.
+                  </>
+                ) : (
+                  <>
+                    Notice how <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedElement.name}</span> adds its differentiating <span className="font-mono">{selectedElement.differentiatingConfig}</span> electron to an inner shell while <span className="font-mono">n = {selectedElement.period}</span> serves as the outer boundary—explaining why transition and rare-earth series retain similar outer radii across consecutive elements.
+                  </>
+                )
+              ) : isAr ? (
                 <>
-                  Notice how <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedElement.name}</span> adds its differentiating <span className="font-mono">{selectedElement.differentiatingConfig}</span> electron to an inner shell while <span className="font-mono">n = {selectedElement.period}</span> serves as the outer boundary—explaining why transition and rare-earth series retain similar outer radii across consecutive elements.
+                  يضع عنصر <span className="font-semibold text-slate-900 dark:text-slate-100">{getElementName(selectedElement)}</span> إلكترونه المميّز <span className="font-mono">{selectedElement.differentiatingConfig}</span> مباشرة في غلافه الرئيسي الخارجي (<span className="font-mono">n = {selectedElement.period}</span>)، مما يولّد تدرجات قوية عبر الدورة في نصف القطر والنشاط الكيميائي.
                 </>
               ) : (
                 <>
@@ -266,16 +323,16 @@ export function AtomicComparisonStudio({
                 <button
                   type="button"
                   onClick={() => onChangeActiveSlot('A')}
-                  className={`px-2 py-1 text-[11px] font-mono font-semibold rounded border cursor-pointer ${
+                  className={`px-2 py-1 text-[11px] font-semibold rounded border cursor-pointer ${
                     activeSlot === 'A'
                       ? 'border-blue-600 bg-blue-600 text-white'
                       : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  Target A {activeSlot === 'A' ? '(Armed)' : ''}
+                  {isAr ? `الهدف أ${activeSlot === 'A' ? ' (مفعّل)' : ''}` : `Target A ${activeSlot === 'A' ? '(Armed)' : ''}`}
                 </button>
                 <select
-                  aria-label="Select Element A for comparison"
+                  aria-label={isAr ? 'اختر العنصر أ للمقارنة' : 'Select Element A for comparison'}
                   value={selectedElement.z}
                   onChange={(e) => {
                     const el = ELEMENTS_BY_Z.get(Number(e.target.value));
@@ -285,7 +342,7 @@ export function AtomicComparisonStudio({
                 >
                   {ELEMENTS.map((el) => (
                     <option key={el.z} value={el.z}>
-                      {el.z}. {el.name} ({el.symbol})
+                      {el.z}. {getElementName(el)} ({el.symbol})
                     </option>
                   ))}
                 </select>
@@ -294,7 +351,7 @@ export function AtomicComparisonStudio({
               <button
                 type="button"
                 onClick={onSwapElements}
-                aria-label="Swap comparison elements A and B"
+                aria-label={isAr ? 'تبديل عنصري المقارنة أ وب' : 'Swap comparison elements A and B'}
                 className="p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
               >
                 <ArrowLeftRight className="w-3.5 h-3.5" aria-hidden="true" />
@@ -305,16 +362,16 @@ export function AtomicComparisonStudio({
                 <button
                   type="button"
                   onClick={() => onChangeActiveSlot('B')}
-                  className={`px-2 py-1 text-[11px] font-mono font-semibold rounded border cursor-pointer ${
+                  className={`px-2 py-1 text-[11px] font-semibold rounded border cursor-pointer ${
                     activeSlot === 'B'
                       ? 'border-teal-600 bg-teal-600 text-white'
                       : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  Target B {activeSlot === 'B' ? '(Armed)' : ''}
+                  {isAr ? `الهدف ب${activeSlot === 'B' ? ' (مفعّل)' : ''}` : `Target B ${activeSlot === 'B' ? '(Armed)' : ''}`}
                 </button>
                 <select
-                  aria-label="Select Element B for comparison"
+                  aria-label={isAr ? 'اختر العنصر ب للمقارنة' : 'Select Element B for comparison'}
                   value={compareElement.z}
                   onChange={(e) => {
                     const el = ELEMENTS_BY_Z.get(Number(e.target.value));
@@ -324,7 +381,7 @@ export function AtomicComparisonStudio({
                 >
                   {ELEMENTS.map((el) => (
                     <option key={el.z} value={el.z}>
-                      {el.z}. {el.name} ({el.symbol})
+                      {el.z}. {getElementName(el)} ({el.symbol})
                     </option>
                   ))}
                 </select>
@@ -333,7 +390,9 @@ export function AtomicComparisonStudio({
 
             {/* Quick Presets */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-slate-500 dark:text-slate-400">Pairs:</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                {isAr ? 'ثنائيات مقترحة:' : 'Pairs:'}
+              </span>
               {COMPARE_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
@@ -344,6 +403,7 @@ export function AtomicComparisonStudio({
                     if (a) onSelectElementA(a);
                     if (b) onSelectElementB(b);
                   }}
+                  dir="ltr"
                   className="px-2 py-0.5 font-mono text-[11px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-slate-400 cursor-pointer"
                 >
                   {preset.label}
@@ -352,51 +412,104 @@ export function AtomicComparisonStudio({
             </div>
           </div>
 
-          {/* Dual Bohr Diagrams + Property Delta Table */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Element A Bohr */}
-            <div className="lg:col-span-3 p-3 rounded-md border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex items-baseline justify-between">
-                <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
-                  A: {selectedElement.name} ({selectedElement.symbol})
-                </span>
-                <span
-                  className="font-mono text-xs font-semibold"
-                  style={{ color: BLOCK_META[selectedElement.block].hex }}
-                >
-                  {selectedElement.quantumAddress}
-                </span>
+          {/* Dual Solar-System Models when atomRepresentation === 'solar' */}
+          {atomRepresentation === 'solar' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="p-3.5 rounded-md border border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {isAr ? 'أ' : 'A'}: {getElementName(selectedElement)} ({selectedElement.symbol})
+                  </span>
+                  <span
+                    className="font-mono text-xs font-semibold"
+                    style={{ color: BLOCK_META[selectedElement.block].hex }}
+                  >
+                    {selectedElement.quantumAddress}
+                  </span>
+                </div>
+                <SolarSystemView
+                  element={selectedElement}
+                  focusedShellN={focusedShellN}
+                  onFocusShell={setFocusedShellN}
+                  compact
+                  engineProp={solarEngine}
+                  onChangeEngine={setSolarEngine}
+                />
               </div>
-              <BohrShellDiagram
-                element={selectedElement}
-                isDark={isDark}
-                compact
-                animateProp={syncAnimate}
-                onToggleAnimate={() => setSyncAnimate((v) => !v)}
-              />
+
+              <div className="p-3.5 rounded-md border border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {isAr ? 'ب' : 'B'}: {getElementName(compareElement)} ({compareElement.symbol})
+                  </span>
+                  <span
+                    className="font-mono text-xs font-semibold"
+                    style={{ color: BLOCK_META[compareElement.block].hex }}
+                  >
+                    {compareElement.quantumAddress}
+                  </span>
+                </div>
+                <SolarSystemView
+                  element={compareElement}
+                  focusedShellN={focusedShellB}
+                  onFocusShell={setFocusedShellB}
+                  compact
+                  engineProp={solarEngine}
+                  onChangeEngine={setSolarEngine}
+                />
+              </div>
             </div>
+          )}
+
+          {/* Dual Diagrams + Property Delta Table */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Element A Bohr (only in 2D Bohr compare layout) */}
+            {atomRepresentation === 'bohr' && (
+              <div className="lg:col-span-3 p-3 rounded-md border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {isAr ? 'أ' : 'A'}: {getElementName(selectedElement)} ({selectedElement.symbol})
+                  </span>
+                  <span
+                    className="font-mono text-xs font-semibold"
+                    style={{ color: BLOCK_META[selectedElement.block].hex }}
+                  >
+                    {selectedElement.quantumAddress}
+                  </span>
+                </div>
+                <BohrShellDiagram
+                  element={selectedElement}
+                  isDark={isDark}
+                  compact
+                  animateProp={syncAnimate}
+                  onToggleAnimate={() => setSyncAnimate((v) => !v)}
+                />
+              </div>
+            )}
 
             {/* Central Comparison Delta Matrix */}
-            <div className="lg:col-span-6 overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className={atomRepresentation === 'solar' ? 'lg:col-span-12 overflow-x-auto' : 'lg:col-span-6 overflow-x-auto'}>
+              <table className="w-full text-start border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                    <th className="py-2 pr-3 font-semibold">Quantum / Property Metric</th>
-                    <th className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="py-2 pe-3 font-semibold text-start">
+                      {isAr ? 'المقياس الكمومي / الكيميائي' : 'Quantum / Property Metric'}
+                    </th>
+                    <th className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100 text-start">
                       {selectedElement.symbol} (Z={selectedElement.z})
                     </th>
-                    <th className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100 text-start">
                       {compareElement.symbol} (Z={compareElement.z})
                     </th>
-                    <th className="py-2 pl-3 font-mono font-semibold text-right">
+                    <th className="py-2 ps-3 font-mono font-semibold text-end">
                       Δ (B − A)
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 font-mono">
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Quantum Address
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'العنوان الكمومي' : 'Quantum Address'}
                     </td>
                     <td className="py-2 px-3" style={{ color: BLOCK_META[selectedElement.block].hex }}>
                       {selectedElement.quantumAddress}
@@ -404,13 +517,17 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3" style={{ color: BLOCK_META[compareElement.block].hex }}>
                       {compareElement.quantumAddress}
                     </td>
-                    <td className="py-2 pl-3 text-right text-slate-500 dark:text-slate-400">
-                      {selectedElement.block === compareElement.block ? 'Same block' : `${selectedElement.block} → ${compareElement.block}`}
+                    <td className="py-2 ps-3 text-end text-slate-500 dark:text-slate-400">
+                      {selectedElement.block === compareElement.block
+                        ? isAr
+                          ? 'نفس الفئة'
+                          : 'Same block'
+                        : `${selectedElement.block} → ${compareElement.block}`}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Differentiating Orbital
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'المدار المميّز' : 'Differentiating Orbital'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.differentiatingConfig}
@@ -418,13 +535,13 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.differentiatingConfig}
                     </td>
-                    <td className="py-2 pl-3 text-right text-slate-500 dark:text-slate-400">
-                      {formatDelta(selectedElement.valenceElectrons, compareElement.valenceElectrons, 'val e⁻', 0)}
+                    <td className="py-2 ps-3 text-end text-slate-500 dark:text-slate-400">
+                      {formatDelta(selectedElement.valenceElectrons, compareElement.valenceElectrons, isAr ? 'تكافؤ' : 'val e⁻', 0)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Shell Occupation
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'إشغال الأغلفة' : 'Shell Occupation'}
                     </td>
                     <td className="py-2 px-3 text-slate-800 dark:text-slate-200">
                       {shellsA.map((s) => s.totalElectrons).join('·')}
@@ -432,13 +549,13 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-800 dark:text-slate-200">
                       {shellsB.map((s) => s.totalElectrons).join('·')}
                     </td>
-                    <td className="py-2 pl-3 text-right text-slate-500 dark:text-slate-400">
-                      {formatDelta(selectedElement.period, compareElement.period, 'shells', 0)}
+                    <td className="py-2 ps-3 text-end text-slate-500 dark:text-slate-400">
+                      {formatDelta(selectedElement.period, compareElement.period, isAr ? 'أغلفة' : 'shells', 0)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Atomic Radius
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'نصف القطر الذري' : 'Atomic Radius'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.atomicRadius} pm
@@ -446,13 +563,13 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.atomicRadius} pm
                     </td>
-                    <td className="py-2 pl-3 text-right font-semibold text-amber-600 dark:text-amber-400">
+                    <td className="py-2 ps-3 text-end font-semibold text-amber-600 dark:text-amber-400">
                       {formatDelta(selectedElement.atomicRadius, compareElement.atomicRadius, 'pm', 0)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      First Ionization Energy
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'طاقة التأين الأولى' : 'First Ionization Energy'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.ionizationEnergy.toFixed(2)} eV
@@ -460,31 +577,35 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.ionizationEnergy.toFixed(2)} eV
                     </td>
-                    <td className="py-2 pl-3 text-right font-semibold text-blue-600 dark:text-blue-400">
+                    <td className="py-2 ps-3 text-end font-semibold text-blue-600 dark:text-blue-400">
                       {formatDelta(selectedElement.ionizationEnergy, compareElement.ionizationEnergy, 'eV', 2)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Electronegativity (Pauling)
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'السالبية الكهربائية (باولنغ)' : 'Electronegativity (Pauling)'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.electronegativity !== null
                         ? selectedElement.electronegativity.toFixed(2)
-                        : 'N/A'}
+                        : isAr
+                          ? 'غير محدد'
+                          : 'N/A'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.electronegativity !== null
                         ? compareElement.electronegativity.toFixed(2)
-                        : 'N/A'}
+                        : isAr
+                          ? 'غير محدد'
+                          : 'N/A'}
                     </td>
-                    <td className="py-2 pl-3 text-right font-semibold text-rose-600 dark:text-rose-400">
+                    <td className="py-2 ps-3 text-end font-semibold text-rose-600 dark:text-rose-400">
                       {formatDelta(selectedElement.electronegativity, compareElement.electronegativity, '', 2)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Metallic Character
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'الصفة الفلزية' : 'Metallic Character'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.metallicCharacter}%
@@ -492,13 +613,13 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.metallicCharacter}%
                     </td>
-                    <td className="py-2 pl-3 text-right font-semibold text-teal-600 dark:text-teal-400">
+                    <td className="py-2 ps-3 text-end font-semibold text-teal-600 dark:text-teal-400">
                       {formatDelta(selectedElement.metallicCharacter, compareElement.metallicCharacter, '%', 0)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-3 font-sans text-slate-600 dark:text-slate-400">
-                      Stable Isotopes
+                    <td className="py-2 pe-3 font-sans text-slate-600 dark:text-slate-400">
+                      {isAr ? 'النظائر المستقرة' : 'Stable Isotopes'}
                     </td>
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {selectedElement.stableIsotopesCount}
@@ -506,7 +627,7 @@ export function AtomicComparisonStudio({
                     <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
                       {compareElement.stableIsotopesCount}
                     </td>
-                    <td className="py-2 pl-3 text-right text-slate-500 dark:text-slate-400">
+                    <td className="py-2 ps-3 text-end text-slate-500 dark:text-slate-400">
                       {formatDelta(selectedElement.stableIsotopesCount, compareElement.stableIsotopesCount, '', 0)}
                     </td>
                   </tr>
@@ -516,40 +637,42 @@ export function AtomicComparisonStudio({
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {selectedElement.symbol}:{' '}
+                    {selectedElement.symbol} ({getElementName(selectedElement)}):{' '}
                   </span>
-                  {selectedElement.chemicalBehavior}
+                  {getElementBehavior(selectedElement)}
                 </p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {compareElement.symbol}:{' '}
+                    {compareElement.symbol} ({getElementName(compareElement)}):{' '}
                   </span>
-                  {compareElement.chemicalBehavior}
+                  {getElementBehavior(compareElement)}
                 </p>
               </div>
             </div>
 
-            {/* Element B Bohr */}
-            <div className="lg:col-span-3 p-3 rounded-md border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex items-baseline justify-between">
-                <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
-                  B: {compareElement.name} ({compareElement.symbol})
-                </span>
-                <span
-                  className="font-mono text-xs font-semibold"
-                  style={{ color: BLOCK_META[compareElement.block].hex }}
-                >
-                  {compareElement.quantumAddress}
-                </span>
+            {/* Element B Bohr (only in 2D Bohr compare layout) */}
+            {atomRepresentation === 'bohr' && (
+              <div className="lg:col-span-3 p-3 rounded-md border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {isAr ? 'ب' : 'B'}: {getElementName(compareElement)} ({compareElement.symbol})
+                  </span>
+                  <span
+                    className="font-mono text-xs font-semibold"
+                    style={{ color: BLOCK_META[compareElement.block].hex }}
+                  >
+                    {compareElement.quantumAddress}
+                  </span>
+                </div>
+                <BohrShellDiagram
+                  element={compareElement}
+                  isDark={isDark}
+                  compact
+                  animateProp={syncAnimate}
+                  onToggleAnimate={() => setSyncAnimate((v) => !v)}
+                />
               </div>
-              <BohrShellDiagram
-                element={compareElement}
-                isDark={isDark}
-                compact
-                animateProp={syncAnimate}
-                onToggleAnimate={() => setSyncAnimate((v) => !v)}
-              />
-            </div>
+            )}
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { ELEMENTS } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, OrbitalBlock } from '../types/element';
 import { BLOCK_META, getValenceFamilyNeighbors } from '../utils/quantum';
 
@@ -43,9 +44,10 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{ payload: ChartDatum }>;
   metric: TrendMetric;
+  isAr: boolean;
 }
 
-function TrendTooltip({ active, payload, metric }: CustomTooltipProps) {
+function TrendTooltip({ active, payload, metric, isAr }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const item = payload[0].payload;
   const blockMeta = BLOCK_META[item.block];
@@ -58,7 +60,10 @@ function TrendTooltip({ active, payload, metric }: CustomTooltipProps) {
       : null;
 
   return (
-    <div className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-700 rounded-md px-3.5 py-2.5 shadow-md text-xs min-w-[215px]">
+    <div
+      dir={isAr ? 'rtl' : 'ltr'}
+      className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-700 rounded-md px-3.5 py-2.5 shadow-md text-xs min-w-[215px]"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-display font-bold text-slate-900 dark:text-slate-100">
           <span
@@ -85,27 +90,37 @@ function TrendTooltip({ active, payload, metric }: CustomTooltipProps) {
       <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800 space-y-1 font-mono">
         <div className="flex items-baseline justify-between gap-3">
           <span className="font-sans text-[11px] text-slate-500 dark:text-slate-400">
-            {metric === 'ionization' ? '1st Ionization' : 'Electronegativity'}
+            {metric === 'ionization'
+              ? isAr
+                ? 'طاقة التأين الأولى'
+                : '1st Ionization'
+              : isAr
+                ? 'السالبية الكهربائية'
+                : 'Electronegativity'}
           </span>
           <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
             {item.value !== null
               ? metric === 'ionization'
                 ? `${item.value.toFixed(2)} eV`
                 : `${item.value.toFixed(2)} χ`
-              : 'Undefined'}
+              : isAr
+                ? 'غير محدد'
+                : 'Undefined'}
           </span>
         </div>
 
         {metric === 'ionization' && item.value !== null && (
           <div className="flex items-baseline justify-between gap-3 text-[10px] text-slate-500 dark:text-slate-400">
-            <span className="font-sans">Molar Equivalent</span>
+            <span className="font-sans">{isAr ? 'المكافئ المولي' : 'Molar Equivalent'}</span>
             <span>{Math.round(item.value * 96.485).toLocaleString()} kJ/mol</span>
           </div>
         )}
 
         {deltaLabel && (
           <div className="flex items-baseline justify-between gap-3 text-[10px]">
-            <span className="font-sans text-slate-500 dark:text-slate-400">Step Δ</span>
+            <span className="font-sans text-slate-500 dark:text-slate-400">
+              {isAr ? 'الفرق Δ' : 'Step Δ'}
+            </span>
             <span
               className={
                 item.deltaFromPrev! > 0
@@ -127,8 +142,34 @@ function TrendTooltip({ active, payload, metric }: CustomTooltipProps) {
 function getQuantumInsight(
   metric: TrendMetric,
   scope: TrendScope,
-  selected: ChemicalElement
+  selected: ChemicalElement,
+  isAr: boolean
 ): string {
+  if (isAr) {
+    if (scope === 'period') {
+      if (metric === 'ionization') {
+        if (selected.period === 1) {
+          return 'تملأ الدورة الأولى المدار 1s فقط: زوج الهيليوم 1s² غير المحجوب يتعرض لشحنة نووية مضاعفة، مما ينتج أعلى طاقة تأين بين جميع العناصر (24.59 eV).';
+        }
+        if (selected.period === 2 || selected.period === 3) {
+          return `عبر الدورة ${selected.period}، يؤدي ارتفاع الشحنة النووية الفعالة Z_eff إلى رفع طاقة التأين مع انحناءين كموميين: هبوط عند s² → p¹ (بدء مستوى p الأعلى طاقة) وعند p³ → p⁴ (تنافر الازدواج المغزلي في مدار p نصف ممتلئ).`;
+        }
+        if (selected.period === 4 || selected.period === 5) {
+          return `عبر الدورة ${selected.period}، يشكّل نطاق الانتقال d¹–d¹⁰ هضبة شبه مسطحة في طاقة التأين لأن إلكترونات (n−1)d الداخلية تحجب إلكترونات ns² الخارجية بفعالية قبل صعود طاقة التأين في الفئة p.`;
+        }
+        return `عبر الدورة ${selected.period}، بالكاد يغيّر ملء 14 إلكتروناً داخلياً في f¹–f¹⁴ من طاقة تأين s² الخارجية، بينما يقلّص الانكماش اللانثانيدي/الأكتينيدي نطاق 5d/6d اللاحق تدريجياً.`;
+      }
+      if (selected.period <= 3) {
+        return `عبر الدورة ${selected.period}، تصعد السالبية الكهربائية باطراد من الفلز القلوي s¹ إلى الهالوجين p⁵ مع ازدياد جذب النواة لإلكترونات التكافؤ ضمن الغلاف الرئيسي نفسه.`;
+      }
+      return `عبر الدورة ${selected.period}، ترتفع السالبية الكهربائية باعتدال عبر هضبة الفئة d (مع انخفاض طفيف عند d⁵ نصف الممتلئ)، ثم تصعد بحدة عبر المدارات p¹–p⁵.`;
+    }
+    if (metric === 'ionization') {
+      return `بالانتقال نزولاً في سلسلة التكافؤ ${selected.subshellLabel} (n = 1..7)، يضع كل غلاف رئيسي مضاف المدار النشط أبعد عن النواة ويزيد الحجب الداخلي—مما يخفض طاقة التأين باستثناء استقرار الدورتين 6 و7 بفعل الانكماش النسبي لـ 4f/5d.`;
+    }
+    return `بالانتقال نزولاً في سلسلة التكافؤ ${selected.subshellLabel}، تقلّل زيادة نصف القطر الذري والحجب الداخلي السالبية الكهربائية وفق باولنغ عموماً، مع انعكاسات طفيفة في الدورتين 5–6 بفعل انكماش اللانثانيدات والانتقاليات (مثل Au وPb).`;
+  }
+
   if (scope === 'period') {
     if (metric === 'ionization') {
       if (selected.period === 1) {
@@ -161,6 +202,7 @@ export function QuantumTrendPlotter({
   onSelectElement,
   isDark,
 }: QuantumTrendPlotterProps) {
+  const { isAr, getElementName } = useLanguage();
   const [metric, setMetric] = useState<TrendMetric>('ionization');
   const [scope, setScope] = useState<TrendScope>('period');
 
@@ -192,7 +234,7 @@ export function QuantumTrendPlotter({
         subLabel: el.subshellLabel,
         z: el.z,
         symbol: el.symbol,
-        name: el.name,
+        name: getElementName(el),
         block: el.block,
         quantumAddress: el.quantumAddress,
         differentiatingConfig: el.differentiatingConfig,
@@ -202,7 +244,7 @@ export function QuantumTrendPlotter({
         element: el,
       };
     });
-  }, [seriesElements, scope, metric]);
+  }, [seriesElements, scope, metric, getElementName]);
 
   const blockSpans = useMemo(() => {
     if (scope !== 'period' || chartData.length === 0) return [];
@@ -239,19 +281,23 @@ export function QuantumTrendPlotter({
   return (
     <section
       id="quantum-trends"
-      aria-label="Quantum Periodic Trend Plotter"
+      aria-label={isAr ? 'مخطط التدرجات الكمومية الدورية' : 'Quantum Periodic Trend Plotter'}
       className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-800 rounded-lg p-5 sm:p-6 space-y-4"
     >
       {/* Header & Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="space-y-0.5">
           <h2 className="font-display text-lg font-bold text-slate-900 dark:text-slate-50">
-            Quantum Trend Plotter
+            {isAr ? 'مخطط التدرجات الكمومية' : 'Quantum Trend Plotter'}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {scope === 'period'
-              ? `Period ${selectedElement.period} subshell progression (${seriesElements.length} elements · s → f → d → p)`
-              : `Valence column ${selectedElement.subshellLabel} across principal shells (${seriesElements.length} elements)`}
+              ? isAr
+                ? `تدرّج المدارات الفرعية في الدورة ${selectedElement.period} (${seriesElements.length} عنصراً · s → f → d → p)`
+                : `Period ${selectedElement.period} subshell progression (${seriesElements.length} elements · s → f → d → p)`
+              : isAr
+                ? `عمود التكافؤ ${selectedElement.subshellLabel} عبر الأغلفة الرئيسية (${seriesElements.length} عناصر)`
+                : `Valence column ${selectedElement.subshellLabel} across principal shells (${seriesElements.length} elements)`}
           </p>
         </div>
 
@@ -259,7 +305,7 @@ export function QuantumTrendPlotter({
           {/* Metric Segmented Switch */}
           <div
             role="group"
-            aria-label="Trend property"
+            aria-label={isAr ? 'خاصية التدرج' : 'Trend property'}
             className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900"
           >
             <button
@@ -271,7 +317,7 @@ export function QuantumTrendPlotter({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Ionization Energy (eV)
+              {isAr ? 'طاقة التأين (eV)' : 'Ionization Energy (eV)'}
             </button>
             <button
               type="button"
@@ -282,14 +328,14 @@ export function QuantumTrendPlotter({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Electronegativity (Pauling)
+              {isAr ? 'السالبية الكهربائية (باولنغ)' : 'Electronegativity (Pauling)'}
             </button>
           </div>
 
           {/* Axis Scope Segmented Switch */}
           <div
             role="group"
-            aria-label="Trend axis scope"
+            aria-label={isAr ? 'نطاق المحور' : 'Trend axis scope'}
             className="flex items-center gap-1 p-1 rounded-md bg-slate-100 dark:bg-slate-900"
           >
             <button
@@ -301,7 +347,7 @@ export function QuantumTrendPlotter({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Period P{selectedElement.period}
+              {isAr ? `الدورة P${selectedElement.period}` : `Period P${selectedElement.period}`}
             </button>
             <button
               type="button"
@@ -312,7 +358,7 @@ export function QuantumTrendPlotter({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              Group {selectedElement.subshellLabel}
+              {isAr ? `المجموعة ${selectedElement.subshellLabel}` : `Group ${selectedElement.subshellLabel}`}
             </button>
           </div>
         </div>
@@ -322,19 +368,28 @@ export function QuantumTrendPlotter({
       {!hasAnyValues ? (
         <div className="h-[260px] flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 px-4 text-center">
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md">
-            Pauling electronegativity values are not experimentally defined for any elements in this{' '}
-            <span className="font-mono">{selectedElement.subshellLabel}</span> series.
+            {isAr ? (
+              <>
+                قيم السالبية الكهربائية لباولنغ غير معرّفة تجريبياً لأي عنصر في سلسلة{' '}
+                <span className="font-mono">{selectedElement.subshellLabel}</span>.
+              </>
+            ) : (
+              <>
+                Pauling electronegativity values are not experimentally defined for any elements in this{' '}
+                <span className="font-mono">{selectedElement.subshellLabel}</span> series.
+              </>
+            )}
           </p>
           <button
             type="button"
             onClick={() => setMetric('ionization')}
             className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 cursor-pointer"
           >
-            Plot Ionization Energy (eV) Instead
+            {isAr ? 'عرض طاقة التأين (eV) بدلاً من ذلك' : 'Plot Ionization Energy (eV) Instead'}
           </button>
         </div>
       ) : (
-        <div className="w-full h-[270px]">
+        <div dir="ltr" className="w-full h-[270px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
@@ -398,7 +453,7 @@ export function QuantumTrendPlotter({
                 isAnimationActive={false}
                 allowEscapeViewBox={{ x: false, y: true }}
                 wrapperStyle={{ pointerEvents: 'none', zIndex: 20 }}
-                content={<TrendTooltip metric={metric} />}
+                content={<TrendTooltip metric={metric} isAr={isAr} />}
                 cursor={{ stroke: isDark ? '#475569' : '#94A3B8', strokeDasharray: '3 3' }}
               />
 
@@ -469,11 +524,13 @@ export function QuantumTrendPlotter({
       {/* Explicit Quantum Trend Explanation Footer */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-xs">
         <p className="text-slate-600 dark:text-slate-300 leading-relaxed max-w-4xl">
-          <span className="font-semibold text-slate-900 dark:text-slate-100">Quantum Trend: </span>
-          {getQuantumInsight(metric, scope, selectedElement)}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {isAr ? 'التدرّج الكمومي: ' : 'Quantum Trend: '}
+          </span>
+          {getQuantumInsight(metric, scope, selectedElement, isAr)}
         </p>
-        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-          Click any node on the curve to inspect
+        <span className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+          {isAr ? 'انقر على أي نقطة في المنحنى لمعاينة العنصر' : 'Click any node on the curve to inspect'}
         </span>
       </div>
     </section>

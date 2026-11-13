@@ -1,10 +1,10 @@
 import { ArrowLeft, ArrowRight, Info } from 'lucide-react';
 import { ELEMENTS_BY_Z } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement } from '../types/element';
 import {
   BLOCK_META,
   buildOrbitalBoxes,
-  FAMILY_META,
   getSubshellNeighbors,
   getValenceFamilyNeighbors,
   parseSubshells,
@@ -16,10 +16,18 @@ interface ElementInspectorProps {
 }
 
 export function ElementInspector({ element, onSelectElement }: ElementInspectorProps) {
+  const {
+    isAr,
+    getElementName,
+    getElementBehavior,
+    getElementAnomaly,
+    getBlockName,
+    getFamilyLabel,
+    getStateLabel,
+  } = useLanguage();
+
   const blockMeta = BLOCK_META[element.block];
-  const familyMeta = FAMILY_META[element.family];
   const subshells = parseSubshells(element.fullConfig);
-  // Show the outer/valence subshells (last 3–4 subshells so the diagram stays crisp and readable)
   const visibleSubshells = subshells.slice(-4);
 
   const subshellNeighbors = getSubshellNeighbors(element);
@@ -28,17 +36,27 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
   const prevZ = ELEMENTS_BY_Z.get(element.z - 1) ?? null;
   const nextZ = ELEMENTS_BY_Z.get(element.z + 1) ?? null;
 
+  const elementName = getElementName(element);
+  const behaviorText = getElementBehavior(element);
+  const anomalyText = getElementAnomaly(element);
+
   const characterLabel =
     element.metallicCharacter >= 60
-      ? 'Metallic'
+      ? isAr
+        ? 'فلزي'
+        : 'Metallic'
       : element.metallicCharacter >= 30
-        ? 'Metalloid / Transitional'
-        : 'Nonmetallic';
+        ? isAr
+          ? 'شبه فلزي / انتقالي'
+          : 'Metalloid / Transitional'
+        : isAr
+          ? 'لافلزي'
+          : 'Nonmetallic';
 
   return (
     <section
       id="quantum-inspector"
-      aria-label="Quantum Element Inspector"
+      aria-label={isAr ? 'مفتش العنصر الكمومي' : 'Quantum Element Inspector'}
       className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-800 rounded-lg p-5 sm:p-6"
     >
       {/* Top Quick Header Row with Z-1 / Z+1 Stepping */}
@@ -50,7 +68,7 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
             aria-hidden="true"
           />
           <h2 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-50">
-            {element.name}
+            {elementName}
           </h2>
           <span className="font-mono text-sm font-semibold text-slate-500 dark:text-slate-400">
             {element.symbol} · Z = {element.z}
@@ -70,8 +88,8 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
             onClick={() => prevZ && onSelectElement(prevZ)}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
           >
-            <ArrowLeft className="w-3 h-3" aria-hidden="true" />
-            <span>{prevZ ? `${prevZ.z} ${prevZ.symbol}` : 'Start'}</span>
+            <ArrowLeft className="w-3 h-3 rtl:rotate-180" aria-hidden="true" />
+            <span>{prevZ ? `${prevZ.z} ${prevZ.symbol}` : isAr ? 'البداية' : 'Start'}</span>
           </button>
           <button
             type="button"
@@ -79,15 +97,15 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
             onClick={() => nextZ && onSelectElement(nextZ)}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
           >
-            <span>{nextZ ? `${nextZ.z} ${nextZ.symbol}` : 'End'}</span>
-            <ArrowRight className="w-3 h-3" aria-hidden="true" />
+            <span>{nextZ ? `${nextZ.z} ${nextZ.symbol}` : isAr ? 'النهاية' : 'End'}</span>
+            <ArrowRight className="w-3 h-3 rtl:rotate-180" aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {/* 3-Column Analytical Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
-        {/* Column 1: Quantum Address & Causal Orbital Chemistry (4 cols) */}
+        {/* Column 1: Quantum Address & Causal Orbital Chemistry */}
         <div className="lg:col-span-4 space-y-4">
           <div className="flex items-start gap-4">
             {/* Standard Element Cell Preview */}
@@ -104,7 +122,7 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
                   {element.symbol}
                 </div>
                 <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">
-                  {element.name}
+                  {elementName}
                 </div>
               </div>
               <div
@@ -117,14 +135,18 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
 
             <div className="space-y-1.5 min-w-0">
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                Period {element.period} · {blockMeta.name} · {familyMeta.label}
+                {isAr
+                  ? `الدورة ${element.period} · ${getBlockName(element.block)} · ${getFamilyLabel(element.family)}`
+                  : `Period ${element.period} · ${getBlockName(element.block)} · ${getFamilyLabel(element.family)}`}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                Mass {element.atomicMass} u · {element.standardState} at 298 K
+                {isAr
+                  ? `الكتلة ${element.atomicMass} u · ${getStateLabel(element.standardState)} عند 298 K`
+                  : `Mass ${element.atomicMass} u · ${getStateLabel(element.standardState)} at 298 K`}
               </div>
               <div className="pt-1">
                 <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Condensed Configuration
+                  {isAr ? 'التوزيع الإلكتروني المختصر' : 'Condensed Configuration'}
                 </div>
                 <div className="font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {element.condensedConfig}
@@ -132,10 +154,11 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
               </div>
               <div>
                 <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Valence Architecture
+                  {isAr ? 'بنية التكافؤ' : 'Valence Architecture'}
                 </div>
                 <div className="font-mono text-xs text-slate-700 dark:text-slate-300">
-                  {element.valenceStructure} ({element.valenceElectrons} valence e⁻)
+                  {element.valenceStructure}{' '}
+                  {isAr ? `(${element.valenceElectrons} إلكترون تكافؤ)` : `(${element.valenceElectrons} valence e⁻)`}
                 </div>
               </div>
             </div>
@@ -143,33 +166,33 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
 
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
             <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Why {element.name} behaves this way
+              {isAr ? `لماذا يتصرف ${elementName} بهذه الطريقة` : `Why ${elementName} behaves this way`}
             </h3>
             <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              {element.chemicalBehavior}
+              {behaviorText}
             </p>
-            {element.anomalyNote && (
+            {anomalyText && (
               <div className="flex items-start gap-2 pt-1 text-xs text-amber-700 dark:text-amber-300">
                 <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
-                <span>{element.anomalyNote}</span>
+                <span>{anomalyText}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Column 2: Spin-Paired Orbital Box Diagram & Chemical Neighbors (4 cols) */}
+        {/* Column 2: Spin-Paired Orbital Box Diagram & Chemical Neighbors */}
         <div className="lg:col-span-4 space-y-4 lg:border-x lg:border-slate-200 dark:lg:border-slate-800 lg:px-6">
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                Outer Orbital Spin Architecture
+                {isAr ? 'بنية الغزل المداري الخارجي' : 'Outer Orbital Spin Architecture'}
               </h3>
               <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                Hund&apos;s Rule
+                {isAr ? 'قاعدة هوند' : "Hund's Rule"}
               </span>
             </div>
 
-            <div className="space-y-2.5">
+            <div dir="ltr" className="space-y-2.5">
               {visibleSubshells.map((sub) => {
                 const boxes = buildOrbitalBoxes(sub.orbitals, sub.electrons);
                 const isDiff = sub.subshell === element.differentiatingOrbital;
@@ -193,7 +216,7 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
                               ? 'border-slate-400 dark:border-slate-500 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100'
                               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400'
                           }`}
-                          title={`${sub.subshell} orbital ${i + 1}`}
+                          title={`${sub.subshell} ${isAr ? 'مدار' : 'orbital'} ${i + 1}`}
                         >
                           {box.up && box.down ? '↑↓' : box.up ? '↑' : ''}
                         </div>
@@ -204,7 +227,7 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
               })}
             </div>
             <div className="mt-2 font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate" title={element.fullConfig}>
-              Full: {element.fullConfig}
+              {isAr ? 'الكامل:' : 'Full:'} {element.fullConfig}
             </div>
           </div>
 
@@ -212,7 +235,9 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
             <div>
               <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                Same-Subshell Sequence (Period {element.period}, {element.block}-block)
+                {isAr
+                  ? `تسلسل تحت-الغلاف نفسه (الدورة ${element.period}، فئة ${element.block})`
+                  : `Same-Subshell Sequence (Period ${element.period}, ${element.block}-block)`}
               </div>
               <div className="flex flex-wrap gap-1">
                 {subshellNeighbors.row.map((n) => (
@@ -234,7 +259,9 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
 
             <div>
               <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                Same Valence Column ({element.subshellLabel} across shells)
+                {isAr
+                  ? `عمود التكافؤ نفسه (${element.subshellLabel} عبر الأغلفة)`
+                  : `Same Valence Column (${element.subshellLabel} across shells)`}
               </div>
               <div className="flex flex-wrap gap-1">
                 {verticalNeighbors.map((n) => (
@@ -257,18 +284,24 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           </div>
         </div>
 
-        {/* Column 3: Calibrated Property Fields & Oxidation States (4 cols) */}
+        {/* Column 3: Calibrated Property Fields & Oxidation States */}
         <div className="lg:col-span-4 space-y-3.5">
           <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-            Chemical Property Coordinates
+            {isAr ? 'إحداثيات الخصائص الكيميائية' : 'Chemical Property Coordinates'}
           </h3>
 
           {/* Electronegativity */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 dark:text-slate-400">Electronegativity (Pauling)</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {isAr ? 'الكهرسلبية (مقياس باولنغ)' : 'Electronegativity (Pauling)'}
+              </span>
               <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                {element.electronegativity !== null ? element.electronegativity.toFixed(2) : 'N/A'}
+                {element.electronegativity !== null
+                  ? element.electronegativity.toFixed(2)
+                  : isAr
+                    ? 'غير معرّفة'
+                    : 'N/A'}
               </span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -287,7 +320,9 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           {/* First Ionization Energy */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 dark:text-slate-400">First Ionization Energy</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {isAr ? 'طاقة التأين الأولى' : 'First Ionization Energy'}
+              </span>
               <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
                 {element.ionizationEnergy.toFixed(2)} eV
               </span>
@@ -303,7 +338,9 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           {/* Atomic Radius */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 dark:text-slate-400">Atomic Radius</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {isAr ? 'نصف القطر الذري' : 'Atomic Radius'}
+              </span>
               <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
                 {element.atomicRadius} pm
               </span>
@@ -320,7 +357,9 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-600 dark:text-slate-400">
-                Metallic Character ({characterLabel})
+                {isAr
+                  ? `الصفة الفلزية (${characterLabel})`
+                  : `Metallic Character (${characterLabel})`}
               </span>
               <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
                 {element.metallicCharacter}%
@@ -337,7 +376,7 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           {/* Oxidation States */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
             <span className="text-xs text-slate-600 dark:text-slate-400">
-              Primary Oxidation States
+              {isAr ? 'حالات الأكسدة الرئيسية' : 'Primary Oxidation States'}
             </span>
             <span className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">
               {element.oxidationStates
@@ -352,23 +391,34 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
       <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-            Stable Isotopes &amp; Natural Terrestrial Abundance
+            {isAr
+              ? 'النظائر المستقرة والوفرة الطبيعية الأرضية'
+              : 'Stable Isotopes & Natural Terrestrial Abundance'}
           </h3>
           <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
             {element.stableIsotopesCount === 0
-              ? '0 stable isotopes · Radioactive / Synthetic'
+              ? isAr
+                ? '0 نظائر مستقرة · مشع / اصطناعي'
+                : '0 stable isotopes · Radioactive / Synthetic'
               : element.stableIsotopesCount === 1
-                ? '1 stable isotope (Monoisotopic)'
-                : `${element.stableIsotopesCount} stable isotopes`}
+                ? isAr
+                  ? 'نظير مستقر واحد (أحادي النظير)'
+                  : '1 stable isotope (Monoisotopic)'
+                : isAr
+                  ? `${element.stableIsotopesCount} نظائر مستقرة`
+                  : `${element.stableIsotopesCount} stable isotopes`}
           </span>
         </div>
 
-        {/* Proportional Natural Abundance Bar (for elements with measured terrestrial abundance) */}
         {element.isotopes.some((iso) => iso.abundance !== null && iso.abundance > 0) && (
           <div
             className="h-2 w-full rounded-xs overflow-hidden flex bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800"
             role="img"
-            aria-label={`Natural abundance distribution for ${element.name}`}
+            aria-label={
+              isAr
+                ? `توزيع الوفرة الطبيعية لعنصر ${elementName}`
+                : `Natural abundance distribution for ${elementName}`
+            }
           >
             {element.isotopes
               .filter((iso) => iso.abundance !== null && iso.abundance > 0)
@@ -399,7 +449,6 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
           </div>
         )}
 
-        {/* Tabular Isotope Cards (hairline border, unboxed typography) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
           {element.isotopes.map((iso) => (
             <div
@@ -416,11 +465,17 @@ export function ElementInspector({ element, onSelectElement }: ElementInspectorP
                     ? iso.abundance >= 1
                       ? `${iso.abundance.toFixed(2)}%`
                       : `${iso.abundance}%`
-                    : 'Synthetic'}
+                    : isAr
+                      ? 'اصطناعي'
+                      : 'Synthetic'}
                 </span>
               </div>
               <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
-                {iso.stable ? 'Stable' : `t₁/₂ ${iso.halfLife ?? 'unstable'}`}
+                {iso.stable
+                  ? isAr
+                    ? 'مستقر'
+                    : 'Stable'
+                  : `t₁/₂ ${iso.halfLife ?? (isAr ? 'غير مستقر' : 'unstable')}`}
               </div>
             </div>
           ))}

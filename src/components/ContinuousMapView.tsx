@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { ELEMENTS } from '../data/elements';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, ChemicalFamily, ColorOverlayMode, OrbitalBlock } from '../types/element';
 import { BLOCK_META, FAMILY_META, getElementCellTheme } from '../utils/quantum';
 
@@ -56,6 +57,8 @@ export function ContinuousMapView({
   familyFilter,
   isDark,
 }: ContinuousMapViewProps) {
+  const { isAr, getElementName, getElementAnomaly } = useLanguage();
+
   const cellLookup = useMemo(() => {
     const map = new Map<string, ChemicalElement>();
     for (const el of ELEMENTS) {
@@ -65,7 +68,7 @@ export function ContinuousMapView({
   }, []);
 
   return (
-    <div className="w-full overflow-x-auto qpm-scroll pb-2">
+    <div dir="ltr" className="w-full overflow-x-auto qpm-scroll pb-2">
       <div className="min-w-[1280px]">
         {/* Block Region Headers */}
         <div
@@ -73,24 +76,24 @@ export function ContinuousMapView({
           style={{ gridTemplateColumns: '48px repeat(32, minmax(36px, 1fr))' }}
         >
           <div className="flex items-end justify-center pb-1 text-[10px] font-mono font-medium text-slate-400 dark:text-slate-500">
-            Shell
+            {isAr ? 'الغلاف' : 'Shell'}
           </div>
           <div className="col-span-2 px-1.5 py-1 rounded-t border border-b-0 border-blue-200 dark:border-blue-800/70 bg-blue-50/70 dark:bg-blue-950/30 text-center">
             <span className="text-[10px] font-display font-semibold text-blue-700 dark:text-blue-300">
-              s-Block
+              {isAr ? 'فئة s' : 's-Block'}
             </span>
           </div>
           <div className="col-span-14 px-2 py-1 rounded-t border border-b-0 border-amber-200 dark:border-amber-800/70 bg-amber-50/70 dark:bg-amber-950/30 flex items-center justify-between">
             <span className="text-[10px] font-display font-semibold text-amber-700 dark:text-amber-300">
-              f-Block Integrated (Lanthanides 4f · Actinides 5f)
+              {isAr ? 'فئة f المدمجة (اللانثانيدات 4f · الأكتينيدات 5f)' : 'f-Block Integrated (Lanthanides 4f · Actinides 5f)'}
             </span>
             <span className="text-[10px] font-mono text-amber-700/80 dark:text-amber-300/80">
-              14 inner f-orbitals in sequence
+              {isAr ? '14 مدار f داخلي متسلسل' : '14 inner f-orbitals in sequence'}
             </span>
           </div>
           <div className="col-span-10 px-2 py-1 rounded-t border border-b-0 border-teal-200 dark:border-teal-800/70 bg-teal-50/70 dark:bg-teal-950/30 flex items-center justify-between">
             <span className="text-[10px] font-display font-semibold text-teal-700 dark:text-teal-300">
-              d-Block Transition Band
+              {isAr ? 'نطاق الفلزات الانتقالية d' : 'd-Block Transition Band'}
             </span>
             <span className="text-[10px] font-mono text-teal-700/80 dark:text-teal-300/80">
               d¹ → d¹⁰
@@ -98,7 +101,7 @@ export function ContinuousMapView({
           </div>
           <div className="col-span-6 px-2 py-1 rounded-t border border-b-0 border-violet-200 dark:border-violet-800/70 bg-violet-50/70 dark:bg-violet-950/30 flex items-center justify-between">
             <span className="text-[10px] font-display font-semibold text-violet-700 dark:text-violet-300">
-              p-Block
+              {isAr ? 'فئة p' : 'p-Block'}
             </span>
             <span className="text-[10px] font-mono text-violet-700/80 dark:text-violet-300/80">
               p¹ → p⁶
@@ -193,12 +196,15 @@ export function ContinuousMapView({
                       ? `${familyStyle.bgClass} ${familyStyle.borderClass}`
                       : '';
 
-                return (
+                  const localizedName = getElementName(el);
+                  const localizedAnomaly = getElementAnomaly(el);
+
+                  return (
                   <button
                     key={el.z}
                     type="button"
                     onClick={() => onSelectElement(el)}
-                    aria-label={`${el.name}, atomic number ${el.z}, ${el.quantumAddress}`}
+                    aria-label={`${localizedName}, Z=${el.z}, ${el.quantumAddress}`}
                     aria-pressed={isSelected}
                     style={
                       overlay !== 'block' && overlay !== 'family'
@@ -215,7 +221,7 @@ export function ContinuousMapView({
                           ? 'ring-1 ring-slate-700/60 dark:ring-slate-300/60 z-10'
                           : 'hover:scale-[1.06] hover:z-10 hover:border-slate-500 dark:hover:border-slate-300'
                     } ${isDimmed ? 'opacity-20' : 'opacity-100'}`}
-                    title={`${el.name} (${el.symbol}) · Z=${el.z} · ${el.condensedConfig} · ${el.quantumAddress}`}
+                    title={`${localizedName} (${el.symbol}) · Z=${el.z} · ${el.condensedConfig} · ${el.quantumAddress}`}
                   >
                     {/* Top: Atomic Number + Valence Electrons */}
                     <div className="w-full flex items-center justify-between leading-none">
@@ -233,7 +239,7 @@ export function ContinuousMapView({
                         {el.symbol}
                       </div>
                       <div className="text-[7.5px] font-medium text-slate-600 dark:text-slate-400 truncate mt-0.5 leading-none">
-                        {el.name}
+                        {localizedName}
                       </div>
                     </div>
 
@@ -248,10 +254,10 @@ export function ContinuousMapView({
                       >
                         {el.differentiatingConfig}
                       </span>
-                      {el.anomalyNote && (
+                      {localizedAnomaly && (
                         <span
                           className="ml-0.5 text-[8px] font-mono text-amber-600 dark:text-amber-400"
-                          title={el.anomalyNote}
+                          title={localizedAnomaly}
                         >
                           *
                         </span>
@@ -265,12 +271,19 @@ export function ContinuousMapView({
         </div>
 
         {/* Footer note explaining integrated continuity & anomalies */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+        <div
+          dir={isAr ? 'rtl' : 'ltr'}
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400"
+        >
           <span>
-            Each cell encodes atomic number (Z), symbol &amp; name, differentiating orbital, and valence electron count simultaneously.
+            {isAr
+              ? 'تعرض كل خلية العدد الذري (Z)، والرمز والاسم، والمدار المميّز، وعدد إلكترونات التكافؤ في آنٍ واحد.'
+              : 'Each cell encodes atomic number (Z), symbol & name, differentiating orbital, and valence electron count simultaneously.'}
           </span>
           <span className="font-mono">
-            * indicates ground-state Aufbau exchange or relativistic subshell shift
+            {isAr
+              ? '* يشير إلى تبادل أوفباو في الحالة الأرضية أو انزياح نسبي في تحت-الغلاف'
+              : '* indicates ground-state Aufbau exchange or relativistic subshell shift'}
           </span>
         </div>
       </div>

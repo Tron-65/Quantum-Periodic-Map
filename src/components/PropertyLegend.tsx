@@ -1,3 +1,4 @@
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalFamily, ColorOverlayMode, OrbitalBlock } from '../types/element';
 import { BLOCK_META, FAMILY_META } from '../utils/quantum';
 
@@ -12,6 +13,8 @@ export function PropertyLegend({
   familyFilter,
   onChangeFamilyFilter,
 }: PropertyLegendProps) {
+  const { isAr, getBlockName, getFamilyLabel } = useLanguage();
+
   if (overlay === 'block') {
     const blocks: OrbitalBlock[] = ['s', 'f', 'd', 'p'];
     return (
@@ -27,7 +30,7 @@ export function PropertyLegend({
                   aria-hidden="true"
                 />
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {meta.name}
+                  {getBlockName(b)}
                 </span>
                 <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
                   ({b}¹–{b}
@@ -38,7 +41,9 @@ export function PropertyLegend({
           })}
         </div>
         <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-          Horizontal axis = active subshell population · Vertical axis = principal shell n
+          {isAr
+            ? 'المحور الأفقي = امتلاء تحت-الغلاف النشط · المحور الرأسي = الغلاف الرئيسي n'
+            : 'Horizontal axis = active subshell population · Vertical axis = principal shell n'}
         </span>
       </div>
     );
@@ -67,7 +72,7 @@ export function PropertyLegend({
                 style={{ backgroundColor: meta.hex }}
                 aria-hidden="true"
               />
-              <span>{meta.label}</span>
+              <span>{getFamilyLabel(fam)}</span>
             </button>
           );
         })}
@@ -80,32 +85,40 @@ export function PropertyLegend({
     { title: string; minLabel: string; maxLabel: string; gradientCss: string; note: string }
   > = {
     electronegativity: {
-      title: 'Pauling Electronegativity',
+      title: isAr ? 'كهرسلبية باولنغ' : 'Pauling Electronegativity',
       minLabel: '0.70 (Fr)',
       maxLabel: '3.98 (F)',
       gradientCss: 'linear-gradient(90deg, #2563EB 0%, #0D9488 35%, #F59E0B 72%, #DC2626 100%)',
-      note: 'Increases diagonally toward Fluorine (2p⁵); gray indicates closed-shell or unmeasured.',
+      note: isAr
+        ? 'تزداد قطرياً باتجاه الفلور (2p⁵)؛ يشير الرمادي إلى الغلاف المغلق أو غير المقاس.'
+        : 'Increases diagonally toward Fluorine (2p⁵); gray indicates closed-shell or unmeasured.',
     },
     radius: {
-      title: 'Atomic Radius',
+      title: isAr ? 'نصف القطر الذري' : 'Atomic Radius',
       minLabel: '31 pm (He)',
       maxLabel: '348 pm (Fr)',
       gradientCss: 'linear-gradient(90deg, #0EA5E9 0%, #6366F1 50%, #D97706 100%)',
-      note: 'Expands down principal shells (n) and contracts across active subshells as Z_eff rises.',
+      note: isAr
+        ? 'يتمدد نزولاً عبر الأغلفة الرئيسية (n) وينكمش عبر تحت-الأغلفة مع ارتفاع Z_eff.'
+        : 'Expands down principal shells (n) and contracts across active subshells as Z_eff rises.',
     },
     ionization: {
-      title: 'First Ionization Energy',
+      title: isAr ? 'طاقة التأين الأولى' : 'First Ionization Energy',
       minLabel: '3.89 eV (Cs)',
       maxLabel: '24.59 eV (He)',
       gradientCss: 'linear-gradient(90deg, #D97706 0%, #0D9488 35%, #2563EB 70%, #7C3AED 100%)',
-      note: 'Peaks at closed shells (He, Ne, Ar) and dips across alkali s¹ valence electrons.',
+      note: isAr
+        ? 'تبلغ ذروتها عند الأغلفة المغلقة (He, Ne, Ar) وتنخفض عند إلكترونات التكافؤ القلوية s¹.'
+        : 'Peaks at closed shells (He, Ne, Ar) and dips across alkali s¹ valence electrons.',
     },
     metallic: {
-      title: 'Metallic Character',
-      minLabel: '0% Nonmetal (He/F)',
-      maxLabel: '99% Strong Metal (Fr/Cs)',
+      title: isAr ? 'الصفة الفلزية' : 'Metallic Character',
+      minLabel: isAr ? '0% لافلز (He/F)' : '0% Nonmetal (He/F)',
+      maxLabel: isAr ? '99% فلز قوي (Fr/Cs)' : '99% Strong Metal (Fr/Cs)',
       gradientCss: 'linear-gradient(90deg, #7C3AED 0%, #0D9488 50%, #2563EB 100%)',
-      note: 'Transitions diagonally from electropositive s-block metals to oxidizing p-block nonmetals.',
+      note: isAr
+        ? 'تتدرج قطرياً من فلزات الفئة s الموجبة كهربياً إلى لافلزات الفئة p المؤكسِدة.'
+        : 'Transitions diagonally from electropositive s-block metals to oxidizing p-block nonmetals.',
     },
   };
 

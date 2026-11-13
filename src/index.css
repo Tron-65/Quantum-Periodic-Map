@@ -12,13 +12,30 @@
     font-family: var(--font-sans);
   }
 
+  html[dir="rtl"] body {
+    font-family: "IBM Plex Sans Arabic", var(--font-sans);
+  }
+
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
+  }
+
+  html[dir="rtl"] h1,
+  html[dir="rtl"] h2,
+  html[dir="rtl"] h3,
+  html[dir="rtl"] h4,
+  html[dir="rtl"] .font-display {
+    font-family: "IBM Plex Sans Arabic", var(--font-display);
   }
 
   .font-mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+
+  html[dir="rtl"] .font-mono {
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 }
 
@@ -80,6 +97,14 @@
   animation: qpm-orbit-spin var(--orbit-duration, 10s) linear infinite reverse;
 }
 
+.qpm-counter-cw {
+  animation: qpm-orbit-spin var(--orbit-duration, 10s) linear infinite reverse;
+}
+
+.qpm-counter-ccw {
+  animation: qpm-orbit-spin var(--orbit-duration, 10s) linear infinite;
+}
+
 .qpm-solar-corona {
   animation: qpm-solar-pulse 3.6s ease-in-out infinite;
 }
@@ -91,6 +116,8 @@
 @media (prefers-reduced-motion: reduce) {
   .qpm-orbit-cw,
   .qpm-orbit-ccw,
+  .qpm-counter-cw,
+  .qpm-counter-ccw,
   .qpm-solar-corona,
   .qpm-cloud-ring {
     animation: none;

@@ -1,6 +1,8 @@
 import { Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ELEMENTS, ELEMENTS_BY_Z } from '../data/elements';
+import { ELEMENT_NAMES_AR } from '../data/elementsAr';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement } from '../types/element';
 import { BLOCK_META } from '../utils/quantum';
 
@@ -19,6 +21,7 @@ export function ElementSearchModal({
 }: ElementSearchModalProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { isAr, getElementName } = useLanguage();
 
   useEffect(() => {
     if (isOpen) {
@@ -38,14 +41,17 @@ export function ElementSearchModal({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return ELEMENTS.slice(0, 18);
-    return ELEMENTS.filter(
-      (el) =>
+    return ELEMENTS.filter((el) => {
+      const nameAr = ELEMENT_NAMES_AR[el.z] ?? '';
+      return (
         el.name.toLowerCase().includes(q) ||
+        nameAr.includes(query.trim()) ||
         el.symbol.toLowerCase().includes(q) ||
         String(el.z) === q ||
         el.quantumAddress.toLowerCase().includes(q) ||
         el.differentiatingOrbital.toLowerCase().includes(q)
-    ).slice(0, 24);
+      );
+    }).slice(0, 24);
   }, [query]);
 
   if (!isOpen) return null;
@@ -56,7 +62,7 @@ export function ElementSearchModal({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Search Quantum Periodic Map elements"
+      aria-label={isAr ? 'البحث عن عناصر الخريطة الدورية الكمومية' : 'Search Quantum Periodic Map elements'}
     >
       <div
         className="w-full max-w-xl bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden"
@@ -70,13 +76,17 @@ export function ElementSearchModal({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by element, symbol, Z, or quantum address (e.g. Fe, 26, 3d, P2)..."
+            placeholder={
+              isAr
+                ? 'ابحث بالاسم أو الرمز أو العدد الذري أو العنوان الكمومي (مثل حديد، Fe، 26، 3d)...'
+                : 'Search by element, symbol, Z, or quantum address (e.g. Fe, 26, 3d, P2)...'
+            }
             className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close search"
+            aria-label={isAr ? 'إغلاق البحث' : 'Close search'}
             className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />
@@ -86,7 +96,7 @@ export function ElementSearchModal({
         {/* Quick Picks */}
         <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50">
           <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mr-1">
-            Featured:
+            {isAr ? 'عناصر مميزة:' : 'Featured:'}
           </span>
           {QUICK_PICKS.map((z) => {
             const el = ELEMENTS_BY_Z.get(z);
@@ -111,7 +121,9 @@ export function ElementSearchModal({
         <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/70">
           {results.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-              No elements match &ldquo;{query}&rdquo;.
+              {isAr
+                ? `لا توجد عناصر تطابق «${query}».`
+                : `No elements match “${query}”.`}
             </div>
           ) : (
             results.map((el) => {
@@ -124,7 +136,7 @@ export function ElementSearchModal({
                     onSelectElement(el);
                     onClose();
                   }}
-                  className="w-full px-4 py-2.5 flex items-center justify-between gap-4 text-left hover:bg-slate-50 dark:hover:bg-slate-900/80 transition-colors cursor-pointer"
+                  className="w-full px-4 py-2.5 flex items-center justify-between gap-4 text-start hover:bg-slate-50 dark:hover:bg-slate-900/80 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
@@ -139,7 +151,7 @@ export function ElementSearchModal({
                       {el.symbol}
                     </span>
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
-                      {el.name}
+                      {getElementName(el)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">

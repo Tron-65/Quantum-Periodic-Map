@@ -13,7 +13,7 @@ export type ChemicalFamily =
   | 'halogen'
   | 'noble-gas';
 
-export type ViewMode = 'continuous' | 'staircase' | 'radial' | 'phase3d';
+export type ViewMode = 'continuous' | 'staircase' | 'radial' | 'solar' | 'phase3d';
 
 export type ColorOverlayMode =
   | 'block'

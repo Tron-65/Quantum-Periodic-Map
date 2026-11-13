@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, OrbitalBlock } from '../types/element';
 import { BLOCK_META } from '../utils/quantum';
 import { getShellSummaries, ShellSummary } from './BohrShellDiagram';
@@ -11,6 +12,7 @@ interface SolarSystemAtomProps {
   element: ChemicalElement;
   focusedShellN: number | null;
   onFocusShell: (n: number | null) => void;
+  compact?: boolean;
 }
 
 type OrbitLayout = 'tilted' | 'ecliptic';
@@ -59,7 +61,9 @@ export function SolarSystemAtom({
   element,
   focusedShellN,
   onFocusShell,
+  compact = false,
 }: SolarSystemAtomProps) {
+  const { isAr, getElementName } = useLanguage();
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [speed, setSpeed] = useState<0.5 | 1 | 2>(1);
@@ -111,7 +115,7 @@ export function SolarSystemAtom({
     })();
 
     const width = container.clientWidth || 720;
-    const height = container.clientHeight || 460;
+    const height = container.clientHeight || (compact ? 360 : 460);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !isSoftwareGl,
@@ -488,7 +492,7 @@ export function SolarSystemAtom({
     const onResize = () => {
       if (!container) return;
       const w = container.clientWidth || 720;
-      const h = container.clientHeight || 460;
+      const h = container.clientHeight || (compact ? 360 : 460);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -546,13 +550,19 @@ export function SolarSystemAtom({
   }, [focusedShellN, orbitLayout, showClouds]);
 
   return (
-    <div className="relative w-full h-[460px] rounded-lg overflow-hidden border border-slate-800 bg-[#060913]">
+    <div
+      className={`relative w-full ${
+        compact ? 'h-[360px]' : 'h-[460px]'
+      } rounded-lg overflow-hidden border border-slate-800 bg-[#060913]`}
+    >
       {/* Isolated WebGL mount container */}
       <div ref={mountRef} className="w-full h-full" />
 
       {contextLost && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 text-slate-100 text-xs">
-          WebGL context lost — restoring 3D Solar-System Orrery...
+          {isAr
+            ? 'تم فقدان سياق WebGL — جارٍ استعادة النموذج الشمسي ثلاثي الأبعاد...'
+            : 'WebGL context lost — restoring 3D Solar-System Orrery...'}
         </div>
       )}
 
@@ -561,20 +571,28 @@ export function SolarSystemAtom({
         <div className="flex items-center gap-2 text-xs font-semibold">
           <span className="font-mono text-amber-400">{element.z}p⁺</span>
           <span>
-            {element.name} ({element.symbol})
+            {getElementName(element)} ({element.symbol})
           </span>
           <span aria-hidden="true">·</span>
           <span className="font-mono" style={{ color: BLOCK_META[element.block].hex }}>
             {element.quantumAddress}
           </span>
         </div>
-        <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-          Shells ({shells.map((s) => s.totalElectrons).join(' · ')}) · Drag to orbit · Scroll to zoom
+        <div className="text-[11px] text-slate-400 mt-0.5">
+          {isAr ? (
+            <>
+              الأغلفة (<span className="font-mono">{shells.map((s) => s.totalElectrons).join(' · ')}</span>) · اسحب للتدوير · مرّر للتكبير
+            </>
+          ) : (
+            <span className="font-mono">
+              Shells ({shells.map((s) => s.totalElectrons).join(' · ')}) · Drag to orbit · Scroll to zoom
+            </span>
+          )}
         </div>
       </div>
 
       {/* Shell Focus Quick Selector (Top-Right) */}
-      <div className="absolute top-3 right-3 z-10 flex flex-wrap items-center gap-1 max-w-[240px] justify-end">
+      <div dir="ltr" className="absolute top-3 right-3 z-10 flex flex-wrap items-center gap-1 max-w-[240px] justify-end">
         <button
           type="button"
           onClick={() => onFocusShell(null)}
@@ -584,7 +602,7 @@ export function SolarSystemAtom({
               : 'border-slate-700 bg-[#0B101E]/95 text-slate-300 hover:border-slate-500'
           }`}
         >
-          All
+          {isAr ? 'الكل' : 'All'}
         </button>
         {shells.map((s) => (
           <button
@@ -612,17 +630,17 @@ export function SolarSystemAtom({
           <button
             type="button"
             onClick={() => setDockOpen((v) => !v)}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-t border border-b-0 border-slate-700 bg-[#0B101E]/95 text-[10px] font-medium text-slate-300 cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-t border border-b-0 border-slate-700 bg-[#0B101E]/95 text-[10px] font-medium text-slate-300 cursor-pointer whitespace-nowrap"
           >
             {dockOpen ? (
               <>
                 <ChevronDown className="w-3 h-3" aria-hidden="true" />
-                <span>Hide Orrery Controls</span>
+                <span>{isAr ? 'إخفاء أزرار التحكم' : 'Hide Orrery Controls'}</span>
               </>
             ) : (
               <>
                 <ChevronUp className="w-3 h-3" aria-hidden="true" />
-                <span>Show Orrery Controls</span>
+                <span>{isAr ? 'إظهار أزرار التحكم' : 'Show Orrery Controls'}</span>
               </>
             )}
           </button>
@@ -631,22 +649,22 @@ export function SolarSystemAtom({
             <button
               type="button"
               onClick={() => setIsPlaying((p) => !p)}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded bg-slate-100 text-slate-900 hover:bg-white cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded bg-slate-100 text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
             >
               {isPlaying ? (
                 <>
                   <Pause className="w-3 h-3" aria-hidden="true" />
-                  <span>Pause</span>
+                  <span>{isAr ? 'إيقاف' : 'Pause'}</span>
                 </>
               ) : (
                 <>
                   <Play className="w-3 h-3" aria-hidden="true" />
-                  <span>Orbit</span>
+                  <span>{isAr ? 'مدار' : 'Orbit'}</span>
                 </>
               )}
             </button>
 
-            <div className="flex items-center rounded border border-slate-700 overflow-hidden text-[10px] font-mono">
+            <div dir="ltr" className="flex items-center rounded border border-slate-700 overflow-hidden text-[10px] font-mono">
               {([0.5, 1, 2] as const).map((sp) => (
                 <button
                   key={sp}
@@ -670,7 +688,13 @@ export function SolarSystemAtom({
               }
               className="px-2 py-1 text-[11px] font-medium rounded border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 whitespace-nowrap cursor-pointer"
             >
-              {orbitLayout === 'tilted' ? '3D Tilted Planes' : 'Flat Ecliptic'}
+              {orbitLayout === 'tilted'
+                ? isAr
+                  ? 'مستويات مائلة 3D'
+                  : '3D Tilted Planes'
+                : isAr
+                  ? 'مسطح مداري'
+                  : 'Flat Ecliptic'}
             </button>
 
             <button
@@ -683,7 +707,7 @@ export function SolarSystemAtom({
                   : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
               }`}
             >
-              Electron Clouds
+              {isAr ? 'السحب الإلكترونية' : 'Electron Clouds'}
             </button>
 
             <button
@@ -692,7 +716,7 @@ export function SolarSystemAtom({
               className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-slate-800 text-slate-200 hover:bg-slate-700 whitespace-nowrap cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" aria-hidden="true" />
-              <span>Angled</span>
+              <span>{isAr ? 'منظور مائل' : 'Angled'}</span>
             </button>
 
             <button
@@ -700,7 +724,7 @@ export function SolarSystemAtom({
               onClick={() => sceneApiRef.current?.setCameraPreset('top')}
               className="px-2 py-1 text-[11px] font-medium rounded bg-slate-800 text-slate-200 hover:bg-slate-700 whitespace-nowrap cursor-pointer"
             >
-              Ecliptic Top
+              {isAr ? 'من الأعلى' : 'Ecliptic Top'}
             </button>
 
             <button
@@ -708,7 +732,7 @@ export function SolarSystemAtom({
               onClick={() => sceneApiRef.current?.setCameraPreset('edge')}
               className="px-2 py-1 text-[11px] font-medium rounded bg-slate-800 text-slate-200 hover:bg-slate-700 whitespace-nowrap cursor-pointer"
             >
-              Horizon
+              {isAr ? 'أفقي' : 'Horizon'}
             </button>
           </div>
         </div>

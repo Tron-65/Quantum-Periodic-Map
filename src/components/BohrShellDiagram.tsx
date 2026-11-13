@@ -1,5 +1,6 @@
 import { Pause, Play } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 import { ChemicalElement, OrbitalBlock } from '../types/element';
 import { BLOCK_META, parseSubshells } from '../utils/quantum';
 
@@ -73,6 +74,7 @@ export function BohrShellDiagram({
   focusedShellN: controlledShellN,
   onFocusShell,
 }: BohrShellDiagramProps) {
+  const { isAr, getElementName } = useLanguage();
   const [internalAnimate, setInternalAnimate] = useState(true);
   const [internalSelectedN, setInternalSelectedN] = useState<number | null>(null);
   const [hoveredShellN, setHoveredShellN] = useState<number | null>(null);
@@ -138,12 +140,12 @@ export function BohrShellDiagram({
       {/* Top Controls: Shell Vector + Speed + Play/Pause */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
-          Shells ({shells.map((s) => s.totalElectrons).join(' · ')})
+          {isAr ? 'الأغلفة' : 'Shells'} ({shells.map((s) => s.totalElectrons).join(' · ')})
         </div>
 
         <div className="flex items-center gap-1.5">
           {!compact && (
-            <div className="flex items-center rounded border border-slate-200 dark:border-slate-700 overflow-hidden text-[10px] font-mono">
+            <div dir="ltr" className="flex items-center rounded border border-slate-200 dark:border-slate-700 overflow-hidden text-[10px] font-mono">
               {([0.5, 1, 2] as const).map((sp) => (
                 <button
                   key={sp}
@@ -169,12 +171,12 @@ export function BohrShellDiagram({
             {isAnimating ? (
               <>
                 <Pause className="w-3 h-3" aria-hidden="true" />
-                <span>Pause</span>
+                <span>{isAr ? 'إيقاف' : 'Pause'}</span>
               </>
             ) : (
               <>
                 <Play className="w-3 h-3" aria-hidden="true" />
-                <span>Animate</span>
+                <span>{isAr ? 'تحريك' : 'Animate'}</span>
               </>
             )}
           </button>
@@ -182,12 +184,16 @@ export function BohrShellDiagram({
       </div>
 
       {/* Interactive SVG Bohr Shell Model */}
-      <div className={`w-full mx-auto ${compact ? 'max-w-[270px]' : 'max-w-[330px]'}`}>
+      <div dir="ltr" className={`w-full mx-auto ${compact ? 'max-w-[270px]' : 'max-w-[330px]'}`}>
         <svg
           viewBox={`0 0 ${size} ${size}`}
           className="w-full h-auto select-none"
           role="img"
-          aria-label={`Bohr-style shell occupation diagram for ${element.name}, principal energy level n=${element.period}`}
+          aria-label={
+            isAr
+              ? `مخطط بور لإشغال الأغلفة لعنصر ${getElementName(element)}، مستوى الطاقة الرئيسي n=${element.period}`
+              : `Bohr-style shell occupation diagram for ${element.name}, principal energy level n=${element.period}`
+          }
         >
           {/* Principal Energy Rings */}
           {shells.map((shell) => {
@@ -274,7 +280,11 @@ export function BohrShellDiagram({
                       stroke={isDark ? '#0D111A' : '#FFFFFF'}
                       strokeWidth={1}
                     >
-                      <title>{`${dot.subshell} electron (n=${shell.n}, ${shell.shellLetter}-shell)`}</title>
+                      <title>
+                        {isAr
+                          ? `إلكترون ${dot.subshell} (n=${shell.n}، الغلاف ${shell.shellLetter})`
+                          : `${dot.subshell} electron (n=${shell.n}, ${shell.shellLetter}-shell)`}
+                      </title>
                     </circle>
                   );
                 })}
@@ -335,7 +345,11 @@ export function BohrShellDiagram({
                   ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 font-semibold'
                   : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 hover:border-slate-400'
               }`}
-              title={`Inspect shell n=${shell.n} (${shell.shellLetter}-shell)`}
+              title={
+                isAr
+                  ? `معاينة الغلاف n=${shell.n} (الغلاف ${shell.shellLetter})`
+                  : `Inspect shell n=${shell.n} (${shell.shellLetter}-shell)`
+              }
             >
               n={shell.n} ({shell.totalElectrons})
             </button>
@@ -346,17 +360,18 @@ export function BohrShellDiagram({
       {/* Active / Hovered Shell Occupation Breakdown */}
       {activeShellInfo && (
         <div className="px-3 py-2 rounded border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 text-xs space-y-1">
-          <div className="flex items-center justify-between font-mono">
+          <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              n = {activeShellInfo.n} ({activeShellInfo.shellLetter}-shell)
-              {activeShellInfo.n === element.period ? ' · Outer' : ''}
-              {activeShellInfo.containsDifferentiating ? ' · Active' : ''}
+              <span className="font-mono">n = {activeShellInfo.n}</span>{' '}
+              ({isAr ? `الغلاف ${activeShellInfo.shellLetter}` : `${activeShellInfo.shellLetter}-shell`})
+              {activeShellInfo.n === element.period ? (isAr ? ' · خارجي' : ' · Outer') : ''}
+              {activeShellInfo.containsDifferentiating ? (isAr ? ' · نشط' : ' · Active') : ''}
             </span>
-            <span className="text-slate-600 dark:text-slate-300">
+            <span className="font-mono text-slate-600 dark:text-slate-300">
               {activeShellInfo.totalElectrons} / {activeShellInfo.maxCapacity} e⁻
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+          <div dir="ltr" className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
             {activeShellInfo.electronsByBlock.map((part) => (
               <span key={part.subshell} className="inline-flex items-center gap-1">
                 <span
